@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Snake</title>
+  <script src="//cdn.bootcss.com/jquery/3.1.1/jquery.slim.min.js"></script>
+  <style>
+    .game {
+      display: flex;
+      flex-wrap: wrap;
+      width: 800px;
+      height: 600px;
+      margin: 10px auto 0;
+      outline: none;
+      border: 1px solid blue;
+    }
+    
+    .game > div {
+      width: 4%;
+      height: 4%;
+      border-radius: 50%;
+    }
+    
+    .snake {
+      background-color: green;
+    }
+
+    .food {
+      background-color: yellow;
+    }
+    
+    .intro {
+    	text-align: center;
+    }
+
+    .intro > span {
+      margin: 15px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="game" id="game" tabindex="1"></div>
+  <div class="intro">
+  	<span>按空格开始/暂停</span><span>按方向键控制方向</span>
+  </div>
+  <script>
+    !function(window) {
+      function game() {
+        const snakeBody = [];
+        let speed = 5;
+        let snakeWrap;
+        let direction = 'right';
+        let food;
+        let timeout;
+        let playing = false;
+        let score = 0;
+        let mutex = false;
+        function refreshFood() {
+          const foodX = Math.round(Math.random() * 24 + 1);
+          const foodY = Math.round(Math.random() * 24 + 1);
+          let wrongPlace = false;
+          for (const body of snakeBody) {
+            if (body[0] === foodX && body[1] === foodY) {
+              wrongPlace = true;
+            }
+          }
+          if (!wrongPlace) {
+            food && snakeWrap.children[(food[1] - 1) * 25 + food[0] - 1].classList.remove('food');
+            snakeWrap.children[(foodY - 1) * 25 + foodX - 1].classList.add('food');
+            food = [foodX, foodY];
+          } else {
+            refreshFood();
+          }
+        }
+        function init(node) {
+          snakeWrap = node;
+          node.focus();
+          const fragment = document.createDocumentFragment();
+          for (let i = 0, len = 25 * 25; i < len; i++) {
+            fragment.appendChild(document.createElement('div'));
+          }
+          node.appendChild(fragment);
+          for (let i = 1; i <= 6; i++) {
+            snakeBody.push([i, 1]);
+            node.children[i - 1].classList.add('snake');
+          }
+          refreshFood();
+          $(node).on('keydown', (e) => {
+            switch (e.key) {
+              case 'ArrowUp': {
+                if (direction !== 'down' && playing && !mutex) {
+                  direction = 'up';
+                  mutex = true;
+                }
+                break;
+              }
+              case 'ArrowDown': {
+                if (direction !== 'up' && playing && !mutex) {
+                  direction = 'down';
+                  mutex = true;
+                }
+                break;
+              }
+              case 'ArrowLeft': {
+                if (direction !== 'right' && playing && !mutex) {
+                  direction = 'left';
+                  mutex = true;
+                }
+                break;
+              }
+              case 'ArrowRight': {
+                if (direction !== 'left' && playing && !mutex) {
+                  direction = 'right';
+                  mutex = true;
+                }
+                break;
+              }
+              case ' ': {
+                if (playing) {
+                  clearTimeout(timeout);
+                  playing = false;
+                } else {
+                  start();
+                }
+              }
+            }
+          });
+        }
+        function start() {
+          if (!playing) playing = true;
+          mutex = false;
+          const head = snakeBody.slice(-1).pop();
+          let nextHead;
+          switch (direction) {
+            case 'up': {
+              nextHead = [head[0], head[1] - 1];
+              break;
+            }
+            case 'down': {
+              nextHead = [head[0], head[1] + 1];
+              break;
+            }
+            case 'left': {
+              nextHead = [head[0] - 1, head[1]];
+              break;
+            }
+            case 'right': {
+              nextHead = [head[0] + 1, head[1]];
+              break;
+            }
+          }
+          let trail = snakeBody[0];
+          let hitSelf = false;
+          for (const body of snakeBody) {
+            if (body[0] === nextHead[0] && body[1] === nextHead[1]) {
+              hitSelf = true;
+            }
+          }
+          if (
+            !hitSelf &&
+            nextHead[0] >= 1 &&
+            nextHead[0] <= 25 &&
+            nextHead[1] >= 1 &&
+            nextHead[1] <= 25
+          ) {
+            if (nextHead[0] === food[0] && nextHead[1] === food[1]) {
+              refreshFood();
+              score += 10;
+            } else {
+              snakeWrap.children[(trail[1] - 1) * 25 + trail[0] - 1].classList.remove('snake');
+              snakeBody.shift();
+            }
+            snakeWrap.children[(nextHead[1] - 1) * 25 + nextHead[0] - 1].classList.add('snake');
+            snakeBody.push(nextHead);
+            timeout = setTimeout(start, 1 / speed * 1000);
+          } else {
+            confirm(`gameover, score: ${score}`);
+            restart();
+          }
+        }
+        function restart() {
+          for (const body of snakeBody) {
+            snakeWrap.children[(body[1] - 1) * 25 + body[0] - 1].classList.remove('snake');
+          }
+          snakeBody.splice(0, snakeBody.length);
+          for (let i = 1; i <= 6; i++) {
+            snakeBody.push([i, 1]);
+            snakeWrap.children[i - 1].classList.add('snake');
+          }
+          refreshFood();
+          score = 0;
+          playing = false;
+          direction = 'right';
+        }
+        return { init };
+      }
+      window.game = game();
+    }(window);
+
+    $(() => {
+      game.init(document.getElementById('game'));
+    });
+	</script>
+</body>
+
+</html>
